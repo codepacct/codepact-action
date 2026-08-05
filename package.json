@@ -1,0 +1,18 @@
+{
+  "name": "codepact-action",
+  "version": "0.1.0",
+  "description": "GitHub Action for Codepact: fail a contract build on colliding error codes and annotate findings on the diff.",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/annotate.test.js test/inputs.test.js test/registry.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codepacct/codepact-action.git"
+  },
+  "dependencies": {}
+}

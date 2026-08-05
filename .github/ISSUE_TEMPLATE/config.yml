@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Analyzer or parser bug
+    url: https://github.com/codepacct/codepact-core/issues/new
+    about: Parser and rule bugs are fixed in codepact-core, then ported here.
+  - name: Security vulnerability
+    url: https://github.com/codepacct/codepact-action/security/advisories/new
+    about: Report privately. Please do not open a public issue.

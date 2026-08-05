@@ -1,0 +1,49 @@
+name: 'Codepact'
+description: 'Fail a Soroban contract build on duplicate or colliding error codes, and annotate every finding inline on the diff.'
+author: 'Codepact'
+
+branding:
+  icon: 'shield'
+  color: 'yellow'
+
+inputs:
+  paths:
+    description: 'Space separated paths to scan for Rust sources.'
+    required: false
+    default: '.'
+  config:
+    description: 'Path to a codepact.config.json declaring per-enum ranges and ignored rules.'
+    required: false
+    default: ''
+  strict:
+    description: 'Treat warnings as failures.'
+    required: false
+    default: 'false'
+  annotate:
+    description: 'Emit GitHub annotations so findings appear on the diff.'
+    required: false
+    default: 'true'
+  summary:
+    description: 'Write a registry table to the job summary.'
+    required: false
+    default: 'true'
+  markdown-out:
+    description: 'Optional file path to write the Markdown error-code registry to.'
+    required: false
+    default: ''
+  fail-on-findings:
+    description: 'Set to false to report findings without failing the build.'
+    required: false
+    default: 'true'
+
+outputs:
+  errors:
+    description: 'Number of error-severity findings.'
+  warnings:
+    description: 'Number of warning-severity findings.'
+  enums:
+    description: 'Number of #[contracterror] enums discovered.'
+
+runs:
+  using: 'node20'
+  main: 'src/action.js'

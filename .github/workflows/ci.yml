@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Unit tests, Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.x', '22.x']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Unit tests
+        run: npm test
+
+  self-test:
+    name: The action checks its own fixtures
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: A clean workspace passes, warnings included
+        id: clean
+        uses: ./
+        with:
+          paths: examples/clean
+          strict: true
+          summary: false
+
+      - name: The clean workspace reported no findings
+        run: |
+          if [ "${{ steps.clean.outputs.errors }}" != "0" ]; then
+            echo "Expected 0 errors on examples/clean, got ${{ steps.clean.outputs.errors }}"
+            exit 1
+          fi
+          if [ "${{ steps.clean.outputs.warnings }}" != "0" ]; then
+            echo "Expected 0 warnings on examples/clean, got ${{ steps.clean.outputs.warnings }}"
+            exit 1
+          fi
+
+      - name: A broken workspace fails the build
+        id: broken
+        continue-on-error: true
+        uses: ./
+        with:
+          paths: examples/broken
+          summary: false
+
+      - name: The broken workspace really did fail
+        run: |
+          if [ "${{ steps.broken.outcome }}" != "failure" ]; then
+            echo "Expected the action to fail on examples/broken, outcome was ${{ steps.broken.outcome }}"
+            exit 1
+          fi
+
+      - name: Findings can be reported without failing the build
+        id: soft
+        uses: ./
+        with:
+          paths: examples/broken
+          fail-on-findings: false
+          summary: false
+
+      - name: Soft mode still counted the errors
+        run: |
+          if [ "${{ steps.soft.outputs.errors }}" = "0" ]; then
+            echo "Expected errors to be reported in soft mode"
+            exit 1
+          fi
