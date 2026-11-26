@@ -41,3 +41,13 @@ test("a clean workspace still renders a registry, and says so", () => {
 test("an empty scan is reported rather than rendering an empty table", () => {
 	assert.match(toMarkdown([], []), /No `#\[contracterror\]` enums found\./)
 })
+
+test("escapes repository-controlled table paths and findings", () => {
+	const path = "contracts/a|b\\c\n<script>.rs"
+	const enums = parseContractErrors("#[contracterror] enum E { A = 1, }", path)
+	const markdown = toMarkdown(enums, [{severity: "error", rule: "example", file: path, line: 3, message: "bad | <details>\n**text**"}])
+	assert.match(markdown, /a\\\|b\\\\c &lt;script&gt;\.rs/)
+	assert.match(markdown, /bad \\\| &lt;details&gt; \\\*\\\*text\\\*\\\*/)
+	assert.doesNotMatch(markdown, /<script>|<details>/)
+	assert.equal(markdown.split("\n").filter((line) => line.includes("script")).length, 2)
+})

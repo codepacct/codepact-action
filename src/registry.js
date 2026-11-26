@@ -1,5 +1,16 @@
 /** Markdown rendering of the discovered error-code registry. */
 
+// Treat repository-controlled paths and messages as table text, not markup.
+function escapeCell(value) {
+	return String(value)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/\\/g, "\\\\")
+		.replace(/([|`*_\[\]])/g, "\\$1")
+		.replace(/[\r\n]+/g, " ")
+}
+
 function toMarkdown(enums, findings) {
 	const lines = ["### Codepact error-code registry", ""]
 
@@ -38,7 +49,7 @@ function toMarkdown(enums, findings) {
 				"` | `" +
 				row.variant +
 				"` | " +
-				row.source +
+				escapeCell(row.source) +
 				" |",
 		)
 	}
@@ -61,11 +72,11 @@ function toMarkdown(enums, findings) {
 				" | `" +
 				finding.rule +
 				"` | " +
-				finding.file +
+				escapeCell(finding.file) +
 				":" +
 				finding.line +
 				" | " +
-				finding.message +
+				escapeCell(finding.message) +
 				" |",
 		)
 	}
