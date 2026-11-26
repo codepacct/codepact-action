@@ -1,0 +1,22 @@
+[
+  {
+    "name": "qualified attribute with resolved and unresolved constants",
+    "file": "qualified.rs",
+    "source": "mod errors {\n    const BASE: u32 = 100;\n    const STEP: u32 = 2;\n\n    #[core::contracterror]\n    #[derive(Copy, Clone, Debug, Eq, PartialEq)]\n    #[repr(u32)]\n    pub enum TokenError {\n        NotInitialized = BASE,\n        InsufficientBalance = BASE + STEP,\n        Overflow = external_const::LIMIT,\n        Unnumbered,\n    }\n}\n"
+  },
+  {
+    "name": "cross-enum code collision and overlapping ranges",
+    "file": "collide.rs",
+    "source": "#[contracterror]\n#[derive(Copy, Clone, Debug, Eq, PartialEq)]\n#[repr(u32)]\npub enum AError {\n    One = 1,\n    Two = 2,\n}\n\n#[contracterror]\n#[derive(Copy, Clone, Debug, Eq, PartialEq)]\n#[repr(u32)]\npub enum BError {\n    First = 2,\n    Second = 3,\n}\n"
+  },
+  {
+    "name": "duplicate discriminant and attribute with fully qualified ::contracterror path",
+    "file": "dup.rs",
+    "source": "#[::soroban_sdk::contracterror]\n#[derive(Copy, Clone, Debug, Eq, PartialEq)]\n#[repr(u32)]\npub enum CError {\n    Same = 5,\n    AlsoSame = 5,\n    Implicit,\n}\n"
+  },
+  {
+    "name": "comments and string literals do not confuse the parser",
+    "file": "scopes.rs",
+    "source": "// #[contracterror] in a comment must not be parsed\nconst NOTE: &str = \"#[contracterror] in a string must not be parsed either\";\n\n#[contracterror]\n#[derive(Copy, Clone, Debug, Eq, PartialEq)]\n#[repr(u32)]\npub enum DError {\n    /* inline */ Alpha = 1, // trailing comment\n    Beta = 1 + 1,\n}\n"
+  }
+]
