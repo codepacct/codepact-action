@@ -3,8 +3,10 @@ const assert = require("node:assert/strict")
 
 const { rawInput, booleanInput, pathsInput, readOptions } = require("../src/inputs.js")
 
-test("a dashed input name maps to the INPUT_ environment variable", () => {
-	assert.equal(rawInput("markdown-out", { INPUT_MARKDOWN_OUT: "registry.md" }), "registry.md")
+test("dashed input names use the runner's hyphenated environment key", () => {
+	assert.equal(rawInput("markdown-out", { "INPUT_MARKDOWN-OUT": "registry.md" }), "registry.md")
+	assert.equal(rawInput("markdown-out", { INPUT_MARKDOWN_OUT: "legacy.md" }), "legacy.md")
+	assert.equal(rawInput("markdown-out", { "INPUT_MARKDOWN-OUT": "runner.md", INPUT_MARKDOWN_OUT: "legacy.md" }), "runner.md")
 })
 
 test("a missing input is an empty string, not undefined", () => {

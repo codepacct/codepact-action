@@ -2,15 +2,17 @@
  * Action input handling.
  *
  * GitHub passes `with:` values as INPUT_<NAME> environment variables, with the
- * name upper-cased and dashes replaced by underscores. Reading them directly
+ * name upper-cased and spaces replaced by underscores. Reading them directly
  * keeps this action dependency-free, which matters because it has to run in
  * contract repositories that have no JavaScript toolchain.
  */
 
 function rawInput(name, env) {
 	const source = env || process.env
-	const key = "INPUT_" + name.replace(/ /g, "_").replace(/-/g, "_").toUpperCase()
-	const value = source[key]
+	const key = "INPUT_" + name.replace(/ /g, "_").toUpperCase()
+	// The runner retains hyphens. Accept the old underscore spelling as a
+	// fallback for callers invoking the entry point directly.
+	const value = source[key] === undefined ? source[key.replace(/-/g, "_")] : source[key]
 	return value === undefined ? "" : value.trim()
 }
 
