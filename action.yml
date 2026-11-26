@@ -8,7 +8,7 @@ branding:
 
 inputs:
   paths:
-    description: 'Space separated paths to scan for Rust sources.'
+    description: 'Space separated paths or * and ** glob patterns to scan for Rust sources.'
     required: false
     default: '.'
   config:

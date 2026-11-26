@@ -19,6 +19,7 @@ const { analyze, summarize } = require("./analyze.js")
 const { toAnnotations } = require("./annotate.js")
 const { toMarkdown } = require("./registry.js")
 const { readOptions } = require("./inputs.js")
+const { expandPath } = require("./glob.js")
 
 const SKIPPED_DIRECTORIES = new Set([".git", "node_modules", "target", "dist", "build"])
 
@@ -31,6 +32,9 @@ function collectRustFiles(root) {
 
 		let stats
 		try {
+			// An explicitly supplied symlink remains supported, but nested links
+			// are not followed: they can point back to an ancestor directory.
+			if (current !== root && fs.lstatSync(current).isSymbolicLink()) continue
 			stats = fs.statSync(current)
 		} catch (error) {
 			throw new Error('Path "' + current + '" could not be read: ' + error.message)
@@ -75,11 +79,17 @@ function run() {
 	}
 
 	const enums = []
-	for (const target of options.paths) {
-		for (const file of collectRustFiles(target)) {
-			const source = fs.readFileSync(file, "utf8")
-			if (!source.includes("#[contracterror]")) continue
-			enums.push(...parseContractErrors(source, path.relative(process.cwd(), file) || file))
+	const seenFiles = new Set()
+	for (const pattern of options.paths) {
+		for (const target of expandPath(pattern)) {
+			for (const file of collectRustFiles(target)) {
+				const absolute = path.resolve(file)
+				if (seenFiles.has(absolute)) continue
+				seenFiles.add(absolute)
+				const source = fs.readFileSync(file, "utf8")
+				if (!source.includes("#[contracterror]")) continue
+				enums.push(...parseContractErrors(source, path.relative(process.cwd(), file) || file))
+			}
 		}
 	}
 
