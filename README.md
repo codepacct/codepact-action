@@ -45,13 +45,21 @@ same error code.
 
 | Input | Default | Description |
 | --- | --- | --- |
-| `paths` | `.` | Space or newline separated paths to scan. |
+| `paths` | `.` | Space or newline separated paths or glob patterns to scan. |
 | `config` | _none_ | Path to a `codepact.config.json` declaring per-enum ranges and ignored rules. |
 | `strict` | `false` | Treat warnings as failures. |
 | `annotate` | `true` | Emit GitHub annotations on the diff. |
 | `summary` | `true` | Write the registry table to the job summary. |
 | `markdown-out` | _none_ | Also write the Markdown registry to this file. |
 | `fail-on-findings` | `true` | Set to `false` to report without failing the build. |
+
+`paths` accepts `*` and `?` within a path component and `**` for zero or more
+directories, for example `contracts/*/src` or `contracts/**/*.rs`. Each glob
+must match at least one path; a missing literal or unmatched glob fails the job.
+Wildcard-matched entries and nested directory scans do not follow symbolic links;
+an explicitly supplied symlink is still supported. Recursive matches skip
+`.git`, `node_modules`, `target`, `dist`, and `build` directories. Overlapping
+paths are scanned only once.
 
 ## Outputs
 

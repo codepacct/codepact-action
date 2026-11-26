@@ -79,3 +79,17 @@ jobs:
             echo "Expected errors to be reported in soft mode"
             exit 1
           fi
+
+      - name: Glob paths find both fixture contracts
+        id: glob
+        uses: ./
+        with:
+          paths: examples/glob/*/src
+          summary: false
+
+      - name: Glob scan discovered both enums
+        run: |
+          if [ "${{ steps.glob.outputs.enums }}" != "2" ]; then
+            echo "Expected two enums from the glob fixtures"
+            exit 1
+          fi
