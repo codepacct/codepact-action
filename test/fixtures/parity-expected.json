@@ -1,0 +1,199 @@
+[
+  {
+    "name": "qualified attribute with resolved and unresolved constants",
+    "enums": [
+      {
+        "name": "TokenError",
+        "file": "qualified.rs",
+        "line": 5,
+        "variants": [
+          {
+            "name": "NotInitialized",
+            "value": 100,
+            "line": 9
+          },
+          {
+            "name": "InsufficientBalance",
+            "value": 102,
+            "line": 10
+          },
+          {
+            "name": "Overflow",
+            "value": null,
+            "valueState": "unresolved",
+            "line": 11
+          },
+          {
+            "name": "Unnumbered",
+            "value": null,
+            "line": 12
+          }
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "rule": "implicit-discriminant",
+        "identity": [
+          "implicit-discriminant",
+          "qualified.rs",
+          "TokenError",
+          "Unnumbered"
+        ],
+        "severity": "warning",
+        "file": "qualified.rs",
+        "line": 12,
+        "message": "TokenError::Unnumbered has no explicit discriminant. Its numeric code depends on declaration order, so inserting a variant above it silently changes the code every client already depends on."
+      }
+    ],
+    "counts": {
+      "errors": 0,
+      "warnings": 1
+    }
+  },
+  {
+    "name": "cross-enum code collision and overlapping ranges",
+    "enums": [
+      {
+        "name": "AError",
+        "file": "collide.rs",
+        "line": 1,
+        "variants": [
+          {
+            "name": "One",
+            "value": 1,
+            "line": 5
+          },
+          {
+            "name": "Two",
+            "value": 2,
+            "line": 6
+          }
+        ]
+      },
+      {
+        "name": "BError",
+        "file": "collide.rs",
+        "line": 9,
+        "variants": [
+          {
+            "name": "First",
+            "value": 2,
+            "line": 13
+          },
+          {
+            "name": "Second",
+            "value": 3,
+            "line": 14
+          }
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "rule": "code-collision",
+        "identity": [
+          "code-collision",
+          "[\"collide.rs\",\"AError\",[[\"2\",[\"Two\"]]]]",
+          "[\"collide.rs\",\"BError\",[[\"2\",[\"First\"]]]]"
+        ],
+        "severity": "error",
+        "file": "collide.rs",
+        "line": 9,
+        "message": "AError (collide.rs) and BError (collide.rs) both define code 2. A caller that only sees the numeric code cannot tell which contract rejected the call."
+      }
+    ],
+    "counts": {
+      "errors": 1,
+      "warnings": 0
+    }
+  },
+  {
+    "name": "duplicate discriminant and attribute with fully qualified ::contracterror path",
+    "enums": [
+      {
+        "name": "CError",
+        "file": "dup.rs",
+        "line": 1,
+        "variants": [
+          {
+            "name": "Same",
+            "value": 5,
+            "line": 5
+          },
+          {
+            "name": "AlsoSame",
+            "value": 5,
+            "line": 6
+          },
+          {
+            "name": "Implicit",
+            "value": null,
+            "line": 7
+          }
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "rule": "duplicate-discriminant",
+        "identity": [
+          "duplicate-discriminant",
+          "dup.rs",
+          "CError",
+          "AlsoSame",
+          "Same",
+          "5"
+        ],
+        "severity": "error",
+        "file": "dup.rs",
+        "line": 6,
+        "message": "CError::AlsoSame reuses code 5, already assigned to CError::Same on line 5. rustc rejects this with E0081."
+      },
+      {
+        "rule": "implicit-discriminant",
+        "identity": [
+          "implicit-discriminant",
+          "dup.rs",
+          "CError",
+          "Implicit"
+        ],
+        "severity": "warning",
+        "file": "dup.rs",
+        "line": 7,
+        "message": "CError::Implicit has no explicit discriminant. Its numeric code depends on declaration order, so inserting a variant above it silently changes the code every client already depends on."
+      }
+    ],
+    "counts": {
+      "errors": 1,
+      "warnings": 1
+    }
+  },
+  {
+    "name": "comments and string literals do not confuse the parser",
+    "enums": [
+      {
+        "name": "DError",
+        "file": "scopes.rs",
+        "line": 4,
+        "variants": [
+          {
+            "name": "Alpha",
+            "value": 1,
+            "line": 8
+          },
+          {
+            "name": "Beta",
+            "value": 2,
+            "line": 9
+          }
+        ]
+      }
+    ],
+    "findings": [],
+    "counts": {
+      "errors": 0,
+      "warnings": 0
+    }
+  }
+]

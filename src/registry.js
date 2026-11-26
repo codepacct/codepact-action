@@ -24,7 +24,12 @@ function toMarkdown(enums, findings) {
 		for (const variant of declaration.variants) {
 			rows.push({
 				value: variant.value,
-				code: variant.value === null ? "_implicit_" : String(variant.value),
+				code:
+					variant.value === null
+						? variant.valueState === "unresolved"
+							? "_unresolved_"
+							: "_implicit_"
+						: String(variant.value),
 				enumName: declaration.name,
 				variant: variant.name,
 				source: declaration.file + ":" + variant.line,
@@ -55,11 +60,20 @@ function toMarkdown(enums, findings) {
 	}
 
 	lines.push("")
+	const unresolved = enums
+		.flatMap((declaration) => declaration.variants)
+		.filter((variant) => variant.valueState === "unresolved").length
+	if (unresolved > 0) {
+		lines.push(
+			unresolved + " explicit discriminant(s) could not be resolved and were not checked.",
+			"",
+		)
+	}
 	lines.push("### Findings")
 	lines.push("")
 
 	if (findings.length === 0) {
-		lines.push("No issues found.")
+		lines.push(unresolved > 0 ? "No issues found in resolved codes." : "No issues found.")
 		return lines.join("\n")
 	}
 

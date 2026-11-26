@@ -2,16 +2,21 @@
  * Blanking pass for Rust source text.
  *
  * Comments, string literals, raw string literals and character literals are
- * replaced with spaces so later passes can search the source with plain string
- * operations without matching text that only looks like code. Newlines are
- * preserved and every replacement is the same length as what it replaces, so
- * offsets and line numbers stay valid.
+ * replaced with spaces so that later passes can search the source with plain
+ * string/regex operations without matching text that only *looks* like code.
+ *
+ * Newlines are preserved, and every replacement is exactly as long as the text
+ * it replaces, so byte offsets and line numbers stay valid.
  *
  * Vendored from codepact-core. See VENDORING.md.
  */
 
 const IDENT_CHAR = /[A-Za-z0-9_]/
 
+/**
+ * @param {string} source Rust source text.
+ * @returns {string} The same text with comments and literals blanked out.
+ */
 function blankComments(source) {
 	const out = source.split("")
 	const length = source.length
@@ -26,6 +31,7 @@ function blankComments(source) {
 	while (i < length) {
 		const ch = source[i]
 
+		// Line comment, including doc comments.
 		if (ch === "/" && source[i + 1] === "/") {
 			let j = i
 			while (j < length && source[j] !== "\n") j++
@@ -34,6 +40,7 @@ function blankComments(source) {
 			continue
 		}
 
+		// Block comment. Rust allows these to nest.
 		if (ch === "/" && source[i + 1] === "*") {
 			let depth = 1
 			let j = i + 2
@@ -55,6 +62,7 @@ function blankComments(source) {
 			continue
 		}
 
+		// Raw string: r"...", r#"..."#, br#"..."#
 		const hashes = rawStringHashes(source, i)
 		if (hashes !== -1) {
 			const end = endOfRawString(source, i, hashes)
@@ -63,6 +71,7 @@ function blankComments(source) {
 			continue
 		}
 
+		// Ordinary string literal.
 		if (ch === '"') {
 			const end = endOfString(source, i)
 			blank(i, end)
@@ -70,6 +79,8 @@ function blankComments(source) {
 			continue
 		}
 
+		// Character literal. A lone quote is far more likely to be a lifetime
+		// (`'a`), so only consume text that actually looks like a char literal.
 		if (ch === "'") {
 			const end = endOfCharLiteral(source, i)
 			if (end !== -1) {
@@ -85,6 +96,10 @@ function blankComments(source) {
 	return out.join("")
 }
 
+/**
+ * @returns {number} Number of `#` characters in the raw string prefix, or -1
+ * when no raw string starts at `i`.
+ */
 function rawStringHashes(source, i) {
 	const previous = i > 0 ? source[i - 1] : " "
 	if (IDENT_CHAR.test(previous)) return -1

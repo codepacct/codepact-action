@@ -87,7 +87,12 @@ function run() {
 				if (seenFiles.has(absolute)) continue
 				seenFiles.add(absolute)
 				const source = fs.readFileSync(file, "utf8")
-				if (!source.includes("#[contracterror]")) continue
+				// Cheap pre-filter: skip files that cannot possibly contain the
+				// attribute. This only needs to be a safe superset of what
+				// parseContractErrors recognises (including qualified paths such
+				// as `#[core::contracterror]`), so a plain substring check on the
+				// word is enough and avoids running the full parser on every file.
+				if (!source.includes("contracterror")) continue
 				enums.push(...parseContractErrors(source, path.relative(process.cwd(), file) || file))
 			}
 		}
@@ -95,11 +100,24 @@ function run() {
 
 	const findings = analyze(enums, config)
 	const counts = summarize(findings)
+	const unresolvedCount = enums
+		.flatMap((declaration) => declaration.variants)
+		.filter((variant) => variant.valueState === "unresolved").length
 
 	if (options.annotate) {
 		for (const annotation of toAnnotations(findings)) {
 			process.stdout.write(annotation + "\n")
 		}
+	}
+
+	if (unresolvedCount > 0) {
+		process.stdout.write(
+			"::warning title=Codepact::" +
+				unresolvedCount +
+				" explicit discriminant(s) use expressions this tool cannot evaluate " +
+				"and were excluded from duplicate, collision, and range checks. Review " +
+				"them manually.\n",
+		)
 	}
 
 	const markdown = toMarkdown(enums, findings)
@@ -117,7 +135,9 @@ function run() {
 			counts.errors +
 			" error(s), " +
 			counts.warnings +
-			" warning(s).\n",
+			" warning(s)" +
+			(unresolvedCount > 0 ? ", " + unresolvedCount + " unresolved discriminant(s)" : "") +
+			".\n",
 	)
 
 	const failed = counts.errors > 0 || (options.strict && counts.warnings > 0)

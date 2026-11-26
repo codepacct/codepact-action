@@ -1,20 +1,54 @@
 /**
- * Error-code integrity rules.
+ * Rules applied to parsed `#[contracterror]` enums.
  *
  * Vendored from codepact-core. See VENDORING.md.
  */
 
+/**
+ * @typedef {object} Finding
+ * @property {string} rule
+ * @property {"error"|"warning"} severity
+ * @property {string} file
+ * @property {number} line
+ * @property {string[]} identity Stable, line-independent finding identity.
+ * @property {string} message
+ */
+
 const RULES = [
-	{ id: "duplicate-discriminant", severity: "error" },
-	{ id: "code-collision", severity: "error" },
-	{ id: "range-violation", severity: "error" },
-	{ id: "range-overlap", severity: "warning" },
-	{ id: "implicit-discriminant", severity: "warning" },
+	{
+		id: "duplicate-discriminant",
+		severity: "error",
+		summary: "Two variants of the same enum are assigned the same numeric code.",
+	},
+	{
+		id: "code-collision",
+		severity: "error",
+		summary: "Two different error enums define the same numeric code.",
+	},
+	{
+		id: "range-violation",
+		severity: "error",
+		summary: "A variant falls outside the range declared for its enum in the config file.",
+	},
+	{
+		id: "range-overlap",
+		severity: "warning",
+		summary: "Two error enums occupy overlapping numeric ranges.",
+	},
+	{
+		id: "implicit-discriminant",
+		severity: "warning",
+		summary: "A variant has no explicit discriminant, so its code depends on declaration order.",
+	},
 ]
 
-function analyze(enums, config) {
-	const settings = config || {}
-	const ignored = new Set(settings.ignore || [])
+/**
+ * @param {import("./parse.js").ErrorEnum[]} enums
+ * @param {{ignore?: string[], ranges?: Record<string, [number, number]>}} [config]
+ * @returns {Finding[]}
+ */
+function analyze(enums, config = {}) {
+	const ignored = new Set(config.ignore ?? [])
 	const findings = []
 	const report = (finding) => {
 		if (!ignored.has(finding.rule)) findings.push(finding)
@@ -25,18 +59,17 @@ function analyze(enums, config) {
 
 		for (const variant of declaration.variants) {
 			if (variant.value === null) {
+				if (variant.valueState === "unresolved") continue
 				report({
 					rule: "implicit-discriminant",
+					identity: ["implicit-discriminant", declaration.file, declaration.name, variant.name],
 					severity: "warning",
 					file: declaration.file,
 					line: variant.line,
 					message:
-						declaration.name +
-						"::" +
-						variant.name +
-						" has no explicit discriminant. Its numeric code depends on declaration " +
-						"order, so inserting a variant above it silently changes the code every " +
-						"client already depends on.",
+						`${declaration.name}::${variant.name} has no explicit discriminant. ` +
+						"Its numeric code depends on declaration order, so inserting a variant " +
+						"above it silently changes the code every client already depends on.",
 				})
 				continue
 			}
@@ -45,22 +78,14 @@ function analyze(enums, config) {
 			if (previous) {
 				report({
 					rule: "duplicate-discriminant",
+					identity: ["duplicate-discriminant", declaration.file, declaration.name, variant.name, previous.name, String(variant.value)],
 					severity: "error",
 					file: declaration.file,
 					line: variant.line,
 					message:
-						declaration.name +
-						"::" +
-						variant.name +
-						" reuses code " +
-						variant.value +
-						", already assigned to " +
-						declaration.name +
-						"::" +
-						previous.name +
-						" on line " +
-						previous.line +
-						". rustc rejects this with E0081.",
+						`${declaration.name}::${variant.name} reuses code ${variant.value}, already ` +
+						`assigned to ${declaration.name}::${previous.name} on line ${previous.line}. ` +
+						"rustc rejects this with E0081.",
 				})
 				continue
 			}
@@ -76,9 +101,9 @@ function analyze(enums, config) {
 			.map((variant) => variant.value)
 		if (values.length === 0) continue
 		spans.push({
-			declaration: declaration,
-			min: Math.min.apply(null, values),
-			max: Math.max.apply(null, values),
+			declaration,
+			min: Math.min(...values),
+			max: Math.max(...values),
 			values: new Set(values),
 		})
 	}
@@ -89,84 +114,61 @@ function analyze(enums, config) {
 			const b = spans[j]
 			if (a.max < b.min || b.max < a.min) continue
 
-			const shared = Array.from(a.values)
-				.filter((value) => b.values.has(value))
-				.sort((x, y) => x - y)
+			const shared = [...a.values].filter((value) => b.values.has(value)).sort((x, y) => x - y)
 
 			if (shared.length > 0) {
 				report({
 					rule: "code-collision",
+					identity: ["code-collision", ...[a, b].map((span) => JSON.stringify([
+						span.declaration.file, span.declaration.name,
+						shared.map((value) => [String(value), span.declaration.variants.filter((v) => v.value === value).map((v) => v.name).sort()]),
+					])).sort()],
 					severity: "error",
 					file: b.declaration.file,
 					line: b.declaration.line,
 					message:
-						a.declaration.name +
-						" (" +
-						a.declaration.file +
-						") and " +
-						b.declaration.name +
-						" (" +
-						b.declaration.file +
-						") both define code" +
-						(shared.length > 1 ? "s " : " ") +
-						shared.join(", ") +
-						". A caller that only sees the numeric code cannot tell which contract " +
-						"rejected the call.",
+						`${a.declaration.name} (${a.declaration.file}) and ${b.declaration.name} ` +
+						`(${b.declaration.file}) both define code${shared.length > 1 ? "s" : ""} ` +
+						`${shared.join(", ")}. A caller that only sees the numeric code cannot tell ` +
+						"which contract rejected the call.",
 				})
 				continue
 			}
 
 			report({
 				rule: "range-overlap",
+				identity: ["range-overlap", ...[a, b].map((span) => JSON.stringify([
+					span.declaration.file, span.declaration.name, span.min, span.max,
+				])).sort()],
 				severity: "warning",
 				file: b.declaration.file,
 				line: b.declaration.line,
 				message:
-					a.declaration.name +
-					" occupies " +
-					a.min +
-					"-" +
-					a.max +
-					" and " +
-					b.declaration.name +
-					" occupies " +
-					b.min +
-					"-" +
-					b.max +
-					". The ranges overlap, so the next variant added to either enum is likely " +
-					"to collide.",
+					`${a.declaration.name} occupies ${a.min}-${a.max} and ${b.declaration.name} ` +
+					`occupies ${b.min}-${b.max}. The ranges overlap, so the next variant added to ` +
+					"either enum is likely to collide.",
 			})
 		}
 	}
 
-	const declaredRanges = settings.ranges || {}
+	const declaredRanges = config.ranges ?? {}
 	for (const span of spans) {
 		const range = declaredRanges[span.declaration.name]
 		if (!range) continue
-		const low = range[0]
-		const high = range[1]
+		const [low, high] = range
 
 		for (const variant of span.declaration.variants) {
 			if (variant.value === null) continue
 			if (variant.value >= low && variant.value <= high) continue
 			report({
 				rule: "range-violation",
+				identity: ["range-violation", span.declaration.file, span.declaration.name, variant.name, String(variant.value), String(low), String(high)],
 				severity: "error",
 				file: span.declaration.file,
 				line: variant.line,
 				message:
-					span.declaration.name +
-					"::" +
-					variant.name +
-					" = " +
-					variant.value +
-					" falls outside the range " +
-					low +
-					"-" +
-					high +
-					" declared for " +
-					span.declaration.name +
-					".",
+					`${span.declaration.name}::${variant.name} = ${variant.value} falls outside the ` +
+					`range ${low}-${high} declared for ${span.declaration.name}.`,
 			})
 		}
 	}
@@ -174,6 +176,7 @@ function analyze(enums, config) {
 	return findings
 }
 
+/** @param {Finding[]} findings */
 function summarize(findings) {
 	return {
 		errors: findings.filter((finding) => finding.severity === "error").length,
