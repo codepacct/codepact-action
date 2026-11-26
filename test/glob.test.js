@@ -67,3 +67,14 @@ test("globstar skips generated directories and symbolic links", () => workspace(
 		assert.match(result.stdout, /scanned 2 enum/)
 	}
 }))
+
+
+test("GitHub's hyphenated fail-on-findings input enables soft mode", () => workspace((root) => {
+	fs.writeFileSync(path.join(root, "contracts", "duplicate.rs"), "#[contracterror]\nenum Duplicate { A = 100 }")
+	const result = spawnSync(process.execPath, [action], {
+		cwd: root, encoding: "utf8", timeout: 5000,
+		env: { ...process.env, INPUT_PATHS: "contracts", INPUT_SUMMARY: "false", INPUT_ANNOTATE: "false", "INPUT_FAIL-ON-FINDINGS": "false", GITHUB_OUTPUT: "", GITHUB_STEP_SUMMARY: "" },
+	})
+	assert.equal(result.status, 0, result.stdout)
+	assert.match(result.stdout, /1 error/)
+}))
