@@ -5,7 +5,7 @@
 # Codepact Action
 
 Run the [Codepact](https://github.com/codepacct/codepact-core) error-code
-integrity check in your contract repository's CI. Every finding is reported as a
+integrity check in your contract repository's CI. Findings are reported as
 GitHub annotations so reviewers can find issues in the build. Some collision
 annotations currently point to the enum declaration rather than the variant;
 see [issue #2](https://github.com/codepacct/codepact-action/issues/2).
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: codepacct/codepact-action@6f654d71348ac4da842c935391ce257284b83a5b
+      - uses: codepacct/codepact-action@1910cd458af1677d71a67cfa938fd6c42974acad
         with:
           paths: contracts/
 ```
@@ -87,7 +87,7 @@ the action enforces it:
 ```
 
 ```yaml
-      - uses: codepacct/codepact-action@6f654d71348ac4da842c935391ce257284b83a5b
+      - uses: codepacct/codepact-action@1910cd458af1677d71a67cfa938fd6c42974acad
         with:
           paths: contracts/
           config: codepact.config.json
@@ -100,7 +100,7 @@ Generate a Markdown table of every error code in the workspace and keep it in
 the repository, so integrators have something to read:
 
 ```yaml
-      - uses: codepacct/codepact-action@6f654d71348ac4da842c935391ce257284b83a5b
+      - uses: codepacct/codepact-action@1910cd458af1677d71a67cfa938fd6c42974acad
         with:
           paths: contracts/
           markdown-out: docs/ERROR_CODES.md
@@ -111,7 +111,7 @@ the repository, so integrators have something to read:
 Start with `fail-on-findings: false`. You get the annotations and the registry
 without a red build, which gives you something to fix against instead of a
 reason to delete the workflow. A proper baseline file is
-[planned in `codepact-core`](https://github.com/codepacct/codepact-core/issues/4).
+[planned in `codepact-core`](https://github.com/codepacct/codepact-core/issues/1).
 
 ## How it works
 
