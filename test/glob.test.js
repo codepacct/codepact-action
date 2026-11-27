@@ -60,7 +60,11 @@ test("globstar skips generated directories and symbolic links", () => workspace(
 	const ignored = path.join(root, "contracts", "target")
 	fs.mkdirSync(ignored)
 	fs.writeFileSync(path.join(ignored, "bad.rs"), "#[contracterror] enum Bad { A = 100 }")
-	fs.symlinkSync(path.join(root, "contracts"), path.join(root, "contracts", "cycle"), "dir")
+	fs.symlinkSync(
+		path.join(root, "contracts"),
+		path.join(root, "contracts", "cycle"),
+		process.platform === "win32" ? "junction" : "dir",
+	)
 	for (const pattern of ["contracts/**/*.rs", "contracts/**", "contracts"]) {
 		const result = run(root, pattern)
 		assert.equal(result.status, 0, result.stdout || String(result.error))

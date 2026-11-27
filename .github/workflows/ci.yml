@@ -7,11 +7,12 @@ on:
 
 jobs:
   test:
-    name: Unit tests, Node ${{ matrix.node }}
-    runs-on: ubuntu-latest
+    name: Unit tests, ${{ matrix.os }}, Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node: ['20.x', '22.x']
 
     steps:
